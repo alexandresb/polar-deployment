@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polar-keycloak
+  labels:
+    app: polar-keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: polar-keycloak
+  template:
+    metadata:
+      name: polar-keycloak
+      labels:
+        app: polar-keycloak
+    spec:
+      containers:
+        - name: polar-keycloak
+          image: quay.io/keycloak/keycloak:26.1.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          args:
+            - "start-dev"
+            - "--import-realm"
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: user
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: password
+          startupProbe:
+            httpGet:
+              port: 8080
+              path: /realms/master
+            failureThreshold: 40
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              port: 8080
+              path: /realms/master
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 350Mi
+            limits:
+              cpu: 500m
+              memory: 750Mi
+          volumeMounts:
+            - mountPath: /opt/keycloak/data/import
+              name: polar-keycloak-config-volume
+      volumes:
+        - name: polar-keycloak-config-volume
+          configMap:
+            name: polar-keycloak
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: polar-keycloak
+  labels:
+    app: polar-keycloak
+spec:
+  type: ClusterIP
+  selector:
+    app: polar-keycloak
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  labels:
+    app: polar-keycloak
+spec:
+  rules:
+    - host: polar-keycloak
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: polar-keycloak
+                port:
+                  number: 80
+
+
+
+      

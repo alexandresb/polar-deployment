@@ -1,8 +1,10 @@
-version: "3.8"
 services:
   catalog-service:
     depends_on:
       - polar-postgres
+      - polar-keycloak
+      - fluent-bit
+      - tempo
     image: "catalog-service"
     container_name: "catalog-service"
     ports:
@@ -17,10 +19,26 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://polar-postgres:5432/polardb_catalog
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://polar-keycloak:8080/realms/PolarBookshop
       - SPRING_PROFILES_ACTIVE=testdata
+      #configuration de l'agent Java OTel pour l'envoi des traces au serveur backend Tempo
+      - JAVA_TOOL_OPTIONS=-javaagent:/workspace/BOOT-INF/lib/opentelemetry-javaagent-2.4.0.jar #chargement de l'agent dans la JVM
+      - OTEL_SERVICE_NAME=catalog-service # tag et categorisation des traces par nom de l'app
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317 #EP Tempo exposant la réception des traces via grpc
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc #utilisation du protocole grpc pour envoyer les traces à Tempo
+
+    #Les logs générés sont envoyés/ poussés vers fluent bit par l'intermédiaire du driver fluentd s'exécutant dans le démon docker dockerd sur la machine hôte
+    logging:
+      driver: fluentd
+      options:
+        #Adresse d'écoute de fluent bit à laquelle le driver fluentd dans l'hôte se connecte
+        fluentd-address: 127.0.0.1:24224
+
   order-service:
     depends_on:
       - polar-postgres
       - polar-rabbitmq
+      - polar-keycloak
+      - fluent-bit
     image: "order-service"
     container_name: "order-service"
     ports:
@@ -37,12 +55,23 @@ services:
       - POLAR_CATALOG_SERVICE_URI=http://catalog-service:9001
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://polar-keycloak:8080/realms/PolarBookshop
       - SPRING_RABBITMQ_HOST=polar-rabbitmq
+      - JAVA_TOOL_OPTIONS=-javaagent:/workspace/BOOT-INF/lib/opentelemetry-javaagent-2.4.0.jar
+      - OTEL_SERVICE_NAME=order-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
 
   edge-service:
     depends_on:
       - polar-redis
       - polar-keycloak
       - polar-ui
+      - fluent-bit
+      - tempo
     image: "edge-service"
     container_name: "edge-service"
     ports:
@@ -59,10 +88,21 @@ services:
       - SPRING_DATA_REDIS_HOST=polar-redis
       - SPA_URL=http://polar-ui:9004
       - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI=http://polar-keycloak:8080/realms/PolarBookshop
+      - JAVA_TOOL_OPTIONS=-javaagent:/workspace/BOOT-INF/lib/opentelemetry-javaagent-2.4.0.jar
+      - OTEL_SERVICE_NAME=edge-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
 
   dispatcher-service:
     depends_on:
       - polar-rabbitmq
+      - fluent-bit
     image: "dispatcher-service"
     container_name: "dispatcher-service"
     ports:
@@ -75,8 +115,19 @@ services:
       - SPRING_CLOUD_CONFIG_URI=http://config-service:8888
       - SPRING_CLOUD_CONFIG_FAILFAST=false
       - SPRING_RABBITMQ_HOST=polar-rabbitmq
+      - JAVA_TOOL_OPTIONS=-javaagent:/workspace/BOOT-INF/lib/opentelemetry-javaagent-2.4.0.jar
+      - OTEL_SERVICE_NAME=dispatcher-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
 
   config-service:
+    depends_on:
+      - fluent-bit
     image: "config-service"
     #pas d'ajout du suffixe -container dans le nom du container
     container_name: "config-service"
@@ -87,6 +138,15 @@ services:
       - BPL_JVM_THREAD_COUNT=50
       - BPL_DEBUG_ENABLED=true
       - BPL_DEBUG_PORT=9888
+      - JAVA_TOOL_OPTIONS=-javaagent:/workspace/BOOT-INF/lib/opentelemetry-javaagent-2.4.0.jar
+      - OTEL_SERVICE_NAME=config-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
 
   polar-postgres:
     image: "postgres:16.3"
@@ -135,3 +195,59 @@ services:
       - 9004:9004
     environment:
       - PORT=9004
+
+  # observabilité
+  grafana:
+    image: grafana/grafana-oss:10.2.2
+    container_name: grafana
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=user
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    volumes:
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./observability/grafana/grafana.ini:/etc/grafana/grafana.ini
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    depends_on:
+      - fluent-bit
+    ports:
+      - "3100:3100"
+
+  fluent-bit:
+    image: grafana/fluent-bit-plugin-loki:2.9.1
+    container_name: fluent-bit
+    ports:
+      - "24224:24224"
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push #URL pour pousser vers le container Loki
+    volumes:
+      - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: tempo
+    #chargement de la configuration customisée au démarrage
+    command: -config.file=/etc/tempo-config.yml
+    ports:
+      - "4317:4317" #OTel grpc
+      #- "4318:4318" #Otel http/protobuf
+      - "3110:3100" #Tempo
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo-config.yml

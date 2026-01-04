@@ -1,4 +1,3 @@
-load_dynamic('../config-service/Tiltfile')
 load_dynamic('../catalog-service/Tiltfile')
 load_dynamic('../order-service/Tiltfile')
 load_dynamic('../edge-service/Tiltfile')

@@ -12,10 +12,10 @@ configMapGenerator:
     files:
       - application-staging.yaml
     name: dispatcher-config
-#redéfinition de l'image utilisée dans un environnement de déploiement Staging
 
+#redéfinition de l'image utilisée dans un environnement de déploiement Staging
 images:
-  - name: dispatcher-service # le nom de l'image indiqué dans le manifeste de base catalog_deployment.yaml
+  - name: dispatcher-service # le nom de l'image indiqué dans le manifeste de déploiement de base
     newName: ghcr.io/alexandresb/dispatcher-service
     newTag: latest
 

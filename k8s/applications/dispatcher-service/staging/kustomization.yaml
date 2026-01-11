@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources: #les manifestes dans le repo catalog-service servent de base à la customisation de catalog-service
-  - https://github.com/alexandresb/dispatcher-service/k8s?ref=v2
+  - https://github.com/alexandresb/dispatcher-service/k8s?ref=main
 
 patches:
   - path: patch_env.yaml

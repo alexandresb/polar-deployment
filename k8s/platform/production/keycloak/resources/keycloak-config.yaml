@@ -1,7 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: polar-config
+  name: keycloak-config
+  namespace: keycloak-system
 data:
   # kv format
   PolarBookshop-realm.json: |

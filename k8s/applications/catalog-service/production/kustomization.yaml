@@ -1,24 +1,25 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources: #les manifestes dans le repo catalog-service servent de base à la customisation de catalog-service
-  - https://github.com/alexandresb/catalog-service/k8s?ref=master
+resources:
+  - https://github.com/alexandresb/catalog-service/k8s?ref=666f2b5a065bc7f4903d65f3b5db7ee195bc0f8f
 
 patches:
   - path: patch_env.yaml
+  - path: patch_volumes.yaml
+  - path: patch_resources.yaml
 
 configMapGenerator:
   - behavior: merge
     files:
-      - application-staging.yaml
+      - application-prod.yaml
     name: catalog-config
-#redéfinition de l'image utilisée dans un environnement de déploiement Staging
+
 images:
   - name: catalog-service # le nom de l'image indiqué dans le manifeste de base catalog_deployment.yaml
     newName: ghcr.io/alexandresb/catalog-service
-    newTag: latest
+    newTag: 666f2b5a065bc7f4903d65f3b5db7ee195bc0f8f #hash de la dernière release
 
-#déploiement de 2 pods dans un env staging
 replicas:
   - count: 2
     name: catalog-service

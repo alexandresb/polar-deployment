@@ -1,0 +1,55 @@
+fullnameOverride: polar-keycloak
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.4.5"
+  pullPolicy: IfNotPresent
+
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--import-realm"
+
+extraEnv: |
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: user
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: RoAObTLLiAXRzkjWhyQf
+  
+  - name: KC_DB
+    value: postgres
+  - name: KC_DB_URL
+    value: jdbc:postgresql://polar-keycloak-postgresql:5432/keycloak
+  - name: KC_DB_USERNAME
+    value: keycloak
+  - name: KC_DB_PASSWORD
+    value: keycloakpassword
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KC_HOSTNAME_STRICT_HTTPS
+    value: "false"
+  - name: KC_HOSTNAME_STRICT
+    value: "false"
+
+extraVolumes: |
+  - name: config-volume
+    configMap:
+      name: keycloak-config
+
+extraVolumeMounts: |
+  - name: config-volume
+    mountPath: "/opt/keycloak/data/import"
+    readOnly: true
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "756Mi"
+  limits:
+    cpu: "2"
+    memory: "756Mi"
+
+service:
+  type: LoadBalancer
+  port: 80
+

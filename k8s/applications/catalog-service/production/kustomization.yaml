@@ -18,7 +18,7 @@ configMapGenerator:
 images:
 - name: catalog-service
   newName: ghcr.io/alexandresb/catalog-service
-  newTag: 744bfbc2ca6120ab1864e35c39495c3ae50b4468
+  newTag: 4ae9ef4508ee263defde16303c88c10dfba3ab22
 
 replicas:
 - count: 2

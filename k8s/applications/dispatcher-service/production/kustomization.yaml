@@ -2,24 +2,24 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - https://github.com/alexandresb/dispatcher-service/k8s?ref=13a96d9d9f8a21fe169336cd59599f6012877dac
+- https://github.com/alexandresb/dispatcher-service/k8s?ref=489638d5ebae280e2589377c92cf8090c0ff907c
 
 patches:
-  - path: patch_env.yaml
-  - path: patch_volumes.yaml
-  - path: patch_resources.yaml
+- path: patch_env.yaml
+- path: patch_volumes.yaml
+- path: patch_resources.yaml
 
 configMapGenerator:
-  - behavior: merge
-    files:
-      - application-prod.yaml
-    name: dispatcher-config
+- behavior: merge
+  files:
+  - application-prod.yaml
+  name: dispatcher-config
 
 images:
-  - name: dispatcher-service # le nom de l'image indiqué dans le manifeste de base catalog_deployment.yaml
-    newName: ghcr.io/alexandresb/dispatcher-service
-    newTag: 13a96d9d9f8a21fe169336cd59599f6012877dac #hash de la dernière release
+- name: dispatcher-service
+  newName: ghcr.io/alexandresb/dispatcher-service
+  newTag: 489638d5ebae280e2589377c92cf8090c0ff907c
 
 replicas:
-  - count: 1
-    name: dispatcher-service
+- count: 1
+  name: dispatcher-service

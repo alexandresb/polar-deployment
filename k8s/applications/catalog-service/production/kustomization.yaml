@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- https://github.com/alexandresb/catalog-service/k8s?ref=666f2b5a065bc7f4903d65f3b5db7ee195bc0f8f
+- https://github.com/alexandresb/catalog-service/k8s?ref=744bfbc2ca6120ab1864e35c39495c3ae50b4468
 
 patches:
 - path: patch_env.yaml

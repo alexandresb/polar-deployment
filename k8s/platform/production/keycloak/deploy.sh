@@ -27,7 +27,7 @@ kubectl wait \
 echo -e "\n🗝️  Keycloak deployment started.\n"
 
 echo "🔐 Generating Keycloak client secret..."
-clientSecret=$(echo $RANDOM | openssl md5 | head -c 20)
+clientSecret="$(openssl rand -hex 24)"
 
 kubectl apply -f resources/namespace.yaml
 sed "s/polar-keycloak-secret/$clientSecret/" resources/keycloak-config.yaml | kubectl apply -n keycloak-system -f -
@@ -61,11 +61,10 @@ echo "Admin Password: RoAObTLLiAXRzkjWhyQf"
 
 echo -e "\n🔑 Generating Secret with Keycloak client secret."
 
-kubectl delete secret polar-keycloak-client-credentials -n keycloak-system || true
+kubectl delete secret polar-keycloak-client-credentials -n default || true
 
-kubectl create secret generic polar-keycloak-client-credentials \
+kubectl create secret generic polar-keycloak-client-credentials -n default \
     --from-literal=spring.security.oauth2.client.registration.keycloak.client-secret="$clientSecret" \
-    -n keycloak-system
 
 echo -e "\n🍃 'polar-keycloak-client-credentials' has been created for Spring Boot applications to interact with Keycloak."
 

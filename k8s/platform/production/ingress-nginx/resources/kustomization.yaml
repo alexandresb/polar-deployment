@@ -6,3 +6,4 @@ resources:
 
 patches:
   - path: patch-config.yaml
+  - path: patch-service.yaml

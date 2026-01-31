@@ -5,4 +5,7 @@ metadata:
   namespace: ingress-nginx
 data:
   allow-snippet-annotations: "true"
-  use-proxy-protocol: "true"
+  use-proxy-protocol: "false"
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+  annotations-risk-level: "Critical"

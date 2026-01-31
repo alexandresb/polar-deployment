@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: order-service
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: BPL_JVM_THREAD_COUNT # configure le nombre de threads que la JVM peut créer au sein d'un container d'image BuildPacks
+              value: "250"
